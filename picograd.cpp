@@ -81,8 +81,67 @@ Value<T> Value<T>::operator+(Value<T>& other) {
     return out;
 }
 
+
+/*  // attempt to use std::variant to avoid code duplication. giving up for now :(
 template<typename T>
-Value<T> Value<T>::pow(float exponent) {
+struct PowVisitor {
+    T& data_;
+    int to_add_;
+    PowVisitor(const T& data): data_{data}, to_add_{0} {};
+    PowVisitor(const T& data, const int& to_add): data_{data}, to_add_{to_add} {};
+
+    T operator()(int exponent) {
+        return std::pow(data_, exponent + to_add_);
+    }
+    T operator()(float exponent) {
+        return std::pow(data_, exponent + to_add_);
+    }
+};
+
+// another try. sadly, visitors with varying return types are not allowed.
+struct Visitor {
+    int operator()(int x) {
+        return x;
+    }
+    float operator()(float x) {
+        return x;
+    }
+};
+
+template<typename T>
+Value<T> Value<T>::pow(std::variant<int, float> exponent) {
+    using ExpType = std::decay_t<decltype(exponent)>;
+    ExpType exp_val;  // Trying to use decltype to get type and use exp_val as out-param did not work either :( :(
+    std::visit([&](auto x){ exp_val = x; }, exponent);
+    LOG("at " << *this << ".pow(" << exp_val << ")");
+    T out_val = std::pow(data_, exp_val);
+    Value out{out_val, "pow", {this, nullptr}};
+
+    out.backward_ = [&out, exp_val](){
+        auto [a, b] = out.children_;
+        a->grad_ += out.grad_ * exp_val*std::pow(a->data_, exp_val-1);
+        LOG(out.op_ << " backward result: " << *a);
+    };
+    return out;
+}
+*/
+
+
+template<typename T>
+Value<T> Value<T>::pow(int exponent) {  // TODO get rid of code duplication. How to keep it working with std::pow? std::variant and std::visit?
+    LOG("at " << *this << ".pow(" << exponent << ")");
+    Value out{std::pow(data_, exponent), "pow", {this, nullptr}};
+
+    out.backward_ = [&out, exponent](){
+        auto [a, b] = out.children_;
+        a->grad_ += out.grad_ * exponent*std::pow(a->data_, exponent-1);
+        LOG(out.op_ << " backward result: " << *a);
+    };
+    return out;
+}
+
+template<typename T>
+Value<T> Value<T>::pow(float exponent) {  // TODO get rid of code duplication. How to keep it working with std::pow? std::variant and std::visit?
     LOG("at " << *this << ".pow(" << exponent << ")");
     Value out{std::pow(data_, exponent), "pow", {this, nullptr}};
 
