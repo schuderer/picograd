@@ -15,6 +15,10 @@ public:
     Value();
     Value(const T& data);
     Value(const T& data, const std::string& op, const std::tuple<Value*, Value*> children);
+    Value(const Value& other);  // copy constructor
+    Value(Value&& other);  // move constructor
+    Value operator=(const Value& other);  // copy assignment constructor
+    Value operator=(Value&& other);  // move assignment constructor
     ~Value();
 
     Value operator+(Value& other);
@@ -22,7 +26,7 @@ public:
     Value operator-();
     Value operator-(Value& other);
     Value operator/(Value& other);
-    Value pow(int exponent);  // todo: support int, float (not Value though)
+    Value pow(float exponent);  // todo: support int, float (not Value though)
     Value exp();
     Value tanh();
     Value relu();
@@ -40,8 +44,8 @@ protected:
     T grad_{0};
     std::string op_{""};
     std::tuple<Value*, Value*> children_{nullptr, nullptr};
-    void topological_order(Value* node, std::vector<Value*>& topo, std::set<Value*>& visited);
     std::function<void()> backward_{nullptr};
+    void topological_order(Value* node, std::vector<Value*>& topo, std::set<Value*>& visited);
 };
 
 template<typename T>

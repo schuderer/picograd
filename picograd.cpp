@@ -4,118 +4,167 @@
 #include <set>
 #include <cmath>
 
+#ifndef __OPTIMIZE__
+#define LOG(x) std::cout << x << std::endl
+#define LOGVAR(x) std::cout << #x"=" << x << std::endl
+#else
+#define LOG(x)
+#define LOGVAR(x)
+#endif
+
 namespace ajs {
 
 template<typename T>
 Value<T>::Value(): Value{0} {
-    std::cout << "Default constructor: " << *this << std::endl;
+    LOG("Default constructor: " << *this);
 }
 
 template<typename T>
 Value<T>::Value(const T& data): data_{data} {
-    std::cout << "Number-only constructor: " << *this << std::endl;
+    LOG("Number-only constructor: " << *this);
 }
 
 template<typename T>
 Value<T>::Value(const T& data, const std::string& op, const std::tuple<Value<T>*, Value<T>*> children)
     :data_{data}, op_{op}, children_{children} {
-    std::cout << "Full constructor: " << *this << std::endl;
+    LOG("Full constructor: " << *this);
+}
+
+
+template<typename T>
+Value<T>::Value(const Value& other) {
+    this->data_ = other.data_;
+    LOG("Copy constructor: " << other << " -> " << *this);
 }
 
 template<typename T>
+Value<T>::Value(Value&& other) {
+    LOG("Move constructor: " << other << " -> " << *this);
+}
+
+template<typename T>
+Value<T> Value<T>::operator=(const Value& other) {
+    LOG("Assignment constructor: " << other << " -> " << *this);
+}
+
+template<typename T>
+Value<T> Value<T>::operator=(Value&& other) {
+    LOG("Move assignment constructor: " << other << " -> " << *this);
+}
+
+
+template<typename T>
 Value<T>::~Value() {
-    std::cout << "Destroying " << *this << std::endl;
+    LOG("Destroying " << *this);
+    if (this->data_ == -1000) {  // just to temporarily make sure it's not called twice
+        exit(1);
+    }
+    this->data_ = -1000;
+    this->grad_ = -1000;
+    this->backward_ = nullptr;
+    this->children_ = {nullptr, nullptr};
 }
 
 
 
 template<typename T>
 Value<T> Value<T>::operator+(Value<T>& other) {
-    Value out = Value(data_ + other.data_, "+", {this, &other});
+    LOG("at " << *this << " + " << other);
+    Value out{data_ + other.data_, "+", {this, &other}};
+
     out.backward_ = [&out](){
         auto [a, b] = out.children_;
-        auto a_obj = *a;
-        auto b_obj = *b;
         a->grad_ += 1 * out.grad_ + 0 * out.grad_;  // for clarity
         b->grad_ += 0 * out.grad_ + 1 * out.grad_;
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a << ", " << *b);
     };
     return out;
 }
 
 template<typename T>
-Value<T> Value<T>::pow(int exponent) {
-    Value out = Value(std::pow(data_, exponent), "^", {this, nullptr});
+Value<T> Value<T>::pow(float exponent) {
+    LOG("at " << *this << ".pow(" << exponent << ")");
+    Value out{std::pow(data_, exponent), "pow", {this, nullptr}};
+
     out.backward_ = [&out, exponent](){
         auto [a, b] = out.children_;
         a->grad_ += out.grad_ * exponent*std::pow(a->data_, exponent-1);
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a);
     };
     return out;
 }
 
 template<typename T>
 Value<T> Value<T>::operator*(Value<T>& other) {
-    Value out = Value(data_ * other.data_, "*", {this, &other});
+    LOG("at " << *this << " * " << other);
+    Value out{data_ * other.data_, "*", {this, &other}};
+
     out.backward_ = [&out](){
         auto [a, b] = out.children_;
         a->grad_ += out.grad_ * b->data_;
         b->grad_ += out.grad_ * a->data_;
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a << ", " << (b ? *b : 0));
     };
     return out;
 }
 
 template<typename T>
 Value<T> Value<T>::operator-() {
-    auto temp = Value<T>(-1); // todo: will this be destroyed before backward pass?
+    LOG("at -" << *this);
+    Value temp{-1}; // todo: will this be destroyed before backward pass?
     return *this * temp;
 }
 
 template<typename T>
 Value<T> Value<T>::operator-(Value<T>& other) {
-    auto temp = -other; // todo: will this be destroyed before backward pass?
+    LOG("at " << *this << " - " << other);
+    Value temp{-other}; // todo: will this be destroyed before backward pass?
     return *this + temp;
 }
 
 template<typename T>
 Value<T> Value<T>::operator/(Value<T>& other) {
-    auto temp = other.pow(-1); // todo: will this be destroyed before backward pass?
+    LOG("at " << *this << " / " << other);
+    Value temp{other.pow(-1)}; // todo: will this be destroyed before backward pass?
     return *this * temp;
 }
 
 template<typename T>
 Value<T> Value<T>::exp() {
-    Value out = Value(std::exp(data_), "exp", {this, nullptr});
+    LOG("at " << *this << ".exp()");
+    Value out{std::exp(data_), "exp", {this, nullptr}};
+
     out.backward_ = [&out](){
         auto [a, b] = out.children_;
         a->grad_ += out.grad_ * out.data_;
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a << ", " << (b ? *b : 0));
     };
     return out;
 }
 
 template<typename T>
 Value<T> Value<T>::tanh() {
+    LOG("at " << *this << ".tanh()");
     T exp_val = std::exp(2 * this->data_);
-    T out_val = (exp_val - 1) / (exp_val + 1);
-    Value out = Value(out_val, "tanh", {this, nullptr});
+    Value out{(exp_val - 1) / (exp_val + 1), "tanh", {this, nullptr}};
+
     out.backward_ = [&out](){
         auto [a, b] = out.children_;
         a->grad_ += out.grad_ * (1 - std::pow(out.data_, 2));
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a << ", " << (b ? *b : 0));
     };
     return out;
 }
 
 template<typename T>
 Value<T> Value<T>::relu() {
-    T out_val = data_ > 0 ? data_ : 0;
-    Value out = Value(out_val, "relu", {this, nullptr});
+    LOG("at " << *this << ".relu()");
+    Value out{data_ > 0 ? data_ : 0, "relu", {this, nullptr}};
+
     out.backward_ = [&out](){
         auto [a, b] = out.children_;
         a->grad_ += out.grad_ * (out.data_ > 0 ? 1 : 0);
-//        std::cout << out.op_ << ": " << *a << ", " << (b ? *b : 0) << std::endl;
+        LOG(out.op_ << " backward result: " << *a << ", " << (b ? *b : 0));
     };
     return out;
 }
@@ -145,7 +194,7 @@ void Value<T>::backward() {
     this->grad_ = 1;
     for (auto val_iter = topo.rbegin(); val_iter != topo.rend(); val_iter++) {
         if ((*val_iter)->backward_ != nullptr) {
-//            std::cout << **val_iter << std::endl;
+            LOG("Calling " << **val_iter << ".backward():");
             (*val_iter)->backward_();
         }
     }

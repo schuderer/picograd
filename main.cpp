@@ -89,6 +89,10 @@ void sanity_check() {
     cout << "end of sanity_check" << endl;
 }
 
+int bla(int& x) {
+    cout << x << " @" << &x << endl;
+    return x;
+}
 
 int main()
 {
@@ -96,15 +100,25 @@ int main()
     auto b = Value(3);
     int exp = 2;
     auto be = b.pow(exp);
-    auto c = a + be;
+    Value<int> c = a + be;
 
     cout << a << " + " << b << "^" << exp << " (" << be << ")" << " = " << c << endl;
 
+    cout << "before c.backward()" << endl;
     c.backward();
+    cout << "after c.backward()" << endl;
+    c.backward();
+    cout << "after second c.backward()" << endl;
+
 
     cout << a << " + " << b << "^" << exp << " (" << be << ")" << " = " << c << endl;
 
-    sanity_check();
+//    sanity_check();
+
+    int x = 3;
+    LOG(x << " @" << &x);
+    const int &y = bla(x);
+    LOG(y << " @" << &y);
 
     cout << "end of main" << endl;
     return 0;
