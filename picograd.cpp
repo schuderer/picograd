@@ -21,33 +21,32 @@ Value<T>::Value(): Value{0} {
 }
 
 template<typename T>
-Value<T>::Value(const T data): m_node{std::make_shared<Node>(data)} {
+Value<T>::Value(const T data): node_{std::make_shared<Node>(data)} {
     LOG("Number-only constructor: " << *this);
 }
 
 template<typename T>
-Value<T>::Value(std::shared_ptr<Node> node): m_node{node} {
+Value<T>::Value(std::shared_ptr<Node> node): node_{node} {
     LOG("Constructor with node: " << *this);
 }
 
-
-// TODO clean up constructors
+// TODO clean up constructors and destructor (I *think* the auto-created default ones should be fine in our class)
 template<typename T>
 Value<T>::Value(const Value& other) {
     LOG("Copy constructor: " << other << " -> " << *this);
-    this->m_node = other.m_node;
+    node_ = other.node_;
 }
 
 template<typename T>
 Value<T>::Value(Value&& other) {
     LOG("Move constructor: " << other << " -> " << *this);
-    this->m_node = std::move(other.m_node);
+    node_ = std::move(other.node_);
 }
 
 template<typename T>
 Value<T>& Value<T>::operator=(const Value& other) {
     LOG("Copy assignment constructor: " << other << " -> " << *this);
-    this->m_node = other.m_node;
+    node_ = other.node_;
     return *this;
 
 }
@@ -55,10 +54,9 @@ Value<T>& Value<T>::operator=(const Value& other) {
 template<typename T>
 Value<T>& Value<T>::operator=(Value&& other) {
     LOG("Move assignment constructor: " << other << " -> " << *this);
-    this->m_node = std::move(other.m_node);
+    node_ = std::move(other.node_);
     return *this;
 }
-
 
 template<typename T>
 Value<T>::~Value() {
@@ -70,7 +68,7 @@ Value<T>::~Value() {
 template<typename T>
 Value<T> Value<T>::operator+(const Value<T>& other) const {
     LOG("forward pass for " << *this << " + " << other);
-    auto out_node = std::make_shared<Node>(get_data() + other.get_data(), Op::add, this->m_node, other.m_node);
+    auto out_node = std::make_shared<Node>(get_data() + other.get_data(), Op::add, node_, other.node_);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -137,7 +135,7 @@ Value<T> Value<T>::pow(std::variant<int, float> exponent) {
 template<typename T>
 Value<T> Value<T>::pow(int exponent) const {  // TODO get rid of code duplication. How to keep it working with std::pow? std::variant and std::visit?
     LOG("forward pass for " << *this << ".pow(" << exponent << ")");
-    auto out_node = std::make_shared<Node>(std::pow(get_data(), exponent), Op::pow, this->m_node, nullptr);
+    auto out_node = std::make_shared<Node>(std::pow(get_data(), exponent), Op::pow, node_, nullptr);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -157,7 +155,7 @@ Value<T> Value<T>::pow(int exponent) const {  // TODO get rid of code duplicatio
 template<typename T>
 Value<T> Value<T>::pow(float exponent) const {  // TODO get rid of code duplication. How to keep it working with std::pow? std::variant and std::visit?
     LOG("forward pass for " << *this << ".pow(" << exponent << ")");
-    auto out_node = std::make_shared<Node>(std::pow(get_data(), exponent), Op::pow, this->m_node, nullptr);
+    auto out_node = std::make_shared<Node>(std::pow(get_data(), exponent), Op::pow, node_, nullptr);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -177,7 +175,7 @@ Value<T> Value<T>::pow(float exponent) const {  // TODO get rid of code duplicat
 template<typename T>
 Value<T> Value<T>::operator*(const Value<T>& other) const {
     LOG("forward pass for " << *this << " * " << other);
-    auto out_node = std::make_shared<Node>(get_data() * other.get_data(), Op::mult, this->m_node, other.m_node);
+    auto out_node = std::make_shared<Node>(get_data() * other.get_data(), Op::mult, node_, other.node_);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -216,7 +214,7 @@ Value<T> Value<T>::operator/(const Value<T>& other) const {
 template<typename T>
 Value<T> Value<T>::exp() const {
     LOG("forward pass for " << *this << ".exp()");
-    auto out_node = std::make_shared<Node>(std::exp(get_data()), Op::exp, this->m_node, nullptr);
+    auto out_node = std::make_shared<Node>(std::exp(get_data()), Op::exp, node_, nullptr);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -236,7 +234,7 @@ template<typename T>
 Value<T> Value<T>::tanh() const {
     LOG("forward pass for " << *this << ".tanh()");
     T exp_val = std::exp(get_data() * 2);
-    auto out_node = std::make_shared<Node>((exp_val - 1) / (exp_val + 1), Op::tanh, this->m_node, nullptr);
+    auto out_node = std::make_shared<Node>((exp_val - 1) / (exp_val + 1), Op::tanh, node_, nullptr);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -255,7 +253,7 @@ Value<T> Value<T>::tanh() const {
 template<typename T>
 Value<T> Value<T>::relu() const {
     LOG("forward pass for " << *this << ".relu()");
-    auto out_node = std::make_shared<Node>(get_data() > 0 ? get_data() : 0, Op::relu, this->m_node, nullptr);
+    auto out_node = std::make_shared<Node>(get_data() > 0 ? get_data() : 0, Op::relu, node_, nullptr);
 
     struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
         std::shared_ptr<Node> out_node;
@@ -271,20 +269,30 @@ Value<T> Value<T>::relu() const {
     return Value(out_node);
 }
 
-//template<typename T>
-//void Value<T>::topological_order(Value<T>* node, std::vector<Value<T>*>& topo, std::set<Value<T>*>& visited) {
-//    if (!visited.contains(node)) {
-//        visited.insert(node);
-//        auto [a, b] = node->children_;
-//        if (a != nullptr) {  // todo: use std::optional?
-//            topological_order(a, topo, visited);
-//        }
-//        if (b != nullptr) {  // todo: use std::optional?
-//            topological_order(b, topo, visited);
-//        }
-//        topo.push_back(node);  // AFTER pushing the dependent nodes
-//    }
-//}
+template<typename T>
+Value<T> Value<T>::operator+=(const Value& other) {
+    *this = *this + other;
+    return *this;
+}
+
+template<typename T>
+Value<T> Value<T>::operator*=(const Value& other) {
+    *this = *this * other;
+    return *this;
+}
+
+template<typename T>
+Value<T> Value<T>::operator-=(const Value& other) {
+    *this = *this - other;
+    return *this;
+}
+
+template<typename T>
+Value<T> Value<T>::operator/=(const Value& other) {
+    *this = *this / other;
+    return *this;
+}
+
 
 template<typename T>
 void Value<T>::topological_order(
@@ -308,9 +316,9 @@ template<typename T>
 void Value<T>::backward() {
     std::vector<std::shared_ptr<Node>> topo{};
     std::unordered_set<std::shared_ptr<Node>> visited{};
-    topological_order(this->m_node, topo, visited);
+    topological_order(node_, topo, visited);
 //        std::cout << *this << " vs " << *topo.front() << std::endl;
-    this->set_grad(1);
+    set_grad(1);
     for (auto iter_node = topo.rbegin(); iter_node != topo.rend(); ++iter_node) {
         LOG("Processing " << (*iter_node)->str());
         auto back_func = (*iter_node)->backward;
@@ -324,23 +332,23 @@ void Value<T>::backward() {
 
 template<typename T>
 T Value<T>::get_data() const {
-    return m_node->data;
+    return node_->data;
 }
 template<typename T>
 T Value<T>::get_grad() const {
-    return m_node->grad;
+    return node_->grad;
 }
 template<typename T>
 auto Value<T>::get_node() const {
-    return m_node;
+    return node_;
 }
 template<typename T>
 void Value<T>::set_data(T data) {
-    m_node->data = data;
+    node_->data = data;
 }
 template<typename T>
 void Value<T>::set_grad(T grad) {
-    m_node->grad = grad;
+    node_->grad = grad;
 }
 
 template<typename T>

@@ -13,7 +13,6 @@ namespace ajs {
 template<typename T>
 class Value
 {
-public: // temp
     enum class Op {
         none, add, sub, mult, div, neg, pow, exp, tanh, relu
     };
@@ -55,7 +54,7 @@ public: // temp
             }
         }
         std::string str() {
-            return std::string("Node(") + std::to_string(data) + ",grad=" + std::to_string(grad) + ",op=" + op_str() + ")@";// + std::to_string(this);
+            return std::string("Node(") + std::to_string(data) + ",grad=" + std::to_string(grad) + ",op=" + op_str() + ")";// + std::to_string(this);
         }
 
         T data;
@@ -78,7 +77,7 @@ public:
 
     // Arithmetic operator overloads
     // Need const reference here to deal with rvalues/temporaries (e.g. c = a + Value(3);). Without const, only accepts lvalues.
-    // This also enables our number constructor to act as implicit converting constructor (c = a + 3;);
+    // This also enables our number constructor to act as implicit converting constructor (c = a + 3) -- which is not exactly good style, though;
     Value operator+(const Value& other) const;
     Value operator*(const Value& other) const;
     Value operator-() const;
@@ -89,6 +88,11 @@ public:
     Value exp() const;
     Value tanh() const;
     Value relu() const;
+
+    Value operator+=(const Value& other);
+    Value operator*=(const Value& other);
+    Value operator-=(const Value& other);
+    Value operator/=(const Value& other);
 
     void backward();
     void graph();
@@ -101,17 +105,12 @@ public:
 
     // User-defined conversion functions (so you can go int(Value(3)), float(Value(3)) etc.)
     // Implicit conversion functions seem to break gradient descent: Values are implicitly reduced to doubles and then copy-constructed, losing the gradient information
-    explicit operator double() const;  // originally allowed implicit here, but this led to creation of new objects
+    explicit operator double() const;  // originally allowed implicit here, but this led to creation of new objects from old objects, losing object state
     explicit operator int() const;
     explicit operator float() const;
 
 protected:
-    std::shared_ptr<Node> m_node;
-//    T data_;
-//    T grad_{0};
-//    std::string op_{""};
-//    std::tuple<Value*, Value*> children_{nullptr, nullptr};
-//    std::function<void()> backward_{nullptr};
+    std::shared_ptr<Node> node_;
     void topological_order(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& topo, std::unordered_set<std::shared_ptr<Node>>& visited);
 };
 

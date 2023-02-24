@@ -1,27 +1,17 @@
 #include <iostream>
 #include "picograd.h"
 
-// temp
-#include <string>
+// for some tests and debugging
 #include <map>
 #include <memory>
 
 using std::cout, std::cin, std::endl;
 using namespace ajs;
 
-//template<typename T>
-//class Foo {
-//public:
-//    T val;
-//    std::tuple<Foo*, Foo*> children_{nullptr, nullptr};  // Error: Field has incomplete type 'Foo<int>'
-//};
-
-//int main() {
-//    Foo<int> f;
-//}
-
-
 void sanity_check() {
+    cout << "beginning of sanity_check" << endl;
+
+    // without rvalues/temporaries:
     auto x = Value(-4.0f);
     auto x2 = Value(2.0f);
     auto x3 = Value(2.0f);
@@ -82,24 +72,71 @@ void sanity_check() {
 //    cout << "y.get_grad()=" << y.get_grad() << "\n" << endl;
 
     cout << "x should be -4.0 and it is " << x << endl;
+    assert(std::abs(x.get_data() - (-4.0)) < 0.00001);
     cout << "y should be -20.0 and it is " << y << endl;
+    assert(std::abs(y.get_data() - (-20.0)) < 0.00001);
     cout << "x.get_grad() should be 46 and it is " << x.get_grad() << endl;
+    assert(std::abs(x.get_grad() - 46.0) < 0.00001);
 
     cout << "end of sanity_check" << endl;
 }
 
+void sanity_check_rvalues() {
+    cout << "beginning of sanity_check_rvalues" << endl;
+
+    // with rvalues:
+    auto x = Value(-4.0);
+    auto z = Value(2.0) * x + 2.0 + x;
+    auto q = z.relu() + z * x;
+    auto h = (z * z).relu();
+    auto y = h + q + q * x;
+    y.backward();
+
+    cout << "x should be -4.0 and it is " << x << endl;
+    assert(std::abs(x.get_data() - (-4.0)) < 0.00001);
+    cout << "y should be -20.0 and it is " << y << endl;
+    assert(std::abs(y.get_data() - (-20.0)) < 0.00001);
+    cout << "x.get_grad() should be 46 and it is " << x.get_grad() << endl;
+    assert(std::abs(x.get_grad() - 46.0) < 0.00001);
+
+    cout << "end of sanity_check_rvalues" << endl;
+}
 
 
-struct bla {
-    int x_, y_;
-    bla(int x, int y): x_{x}, y_{y} {};
-    ~bla() {
-        cout << "bla destructor!" << endl;
-    }
+void test_more_ops() {
+    cout << "beginning of test_more_ops" << endl;
 
-};
+    auto a = Value(-4.0);
+    auto b = Value(2.0);
+    auto c = a + b;
+    auto d = a * b + b.pow(3);
+    c += c + 1;
+    c += Value(1.0) + c + (-a);
+    d += d * 2 + (b + a).relu();
+    d += Value(3.0) * d + (b - a).relu();
+    auto e = c - d;
+    auto f = e.pow(2);
+    auto g = f / 2.0;
+    g += Value(10.0) / f;
+    g.backward();
+
+    // pytorch's g.data: 24.70408163265306
+    // pytorch's a.grad: 138.83381924198252
+    // pytorch's b.grad: 645.5772594752186
+
+    cout << "g should be 24.704082 and it is " << g << endl;
+    assert(std::abs(g.get_data() - 24.704082) < 0.00001);
+    cout << "a.get_grad() should be 138.833819 and it is " << a.get_grad() << endl;
+    assert(std::abs(a.get_grad() - 138.833819) < 0.00001);
+    cout << "b.get_grad() should be 645.577259 and it is " << b.get_grad() << endl;
+    assert(std::abs(b.get_grad() - 645.577259) < 0.00001);
+
+    cout << "end of test_more_ops" << endl;
+}
 
 
+// Just for tracking object creating and destruction. Remove this, as well as the new/delete overloads
+// (the crash at the end of main is because of delete trying to access it)
 std::map<size_t, size_t> sizes;
 bool stop_recursion = false;
 
@@ -138,60 +175,9 @@ void operator delete[](void* ptr) noexcept {
 
 int main()
 {
-
-    /*
-    auto a = Value(2);
-    auto b = Value(3);
-    int exp = 2;
-    auto be = b.pow(exp);
-    Value<int> c = a + be;
-
-    cout << a << " + " << b << "^" << exp << " (" << be << ")" << " = " << c << endl;
-
-    cout << "before c.backward()" << endl;
-    c.backward();
-    cout << "after c.backward()" << endl;
-    c.backward();
-    cout << "after second c.backward()" << endl;
-
-
-    cout << a << " + " << b << "^" << exp << " (" << be << ")" << " = " << c << endl;
-*/
     sanity_check();
-
-    {
-    Value<double> c{};
-    {
-    auto a = Value(2.0);
-    auto b = Value(3.0);
-    c = a - b;
-
-    cout << a << " + " << b << "^" << 2 << " = " << c << endl;
-    cout << "before backward" << endl;
-    c.backward();
-    cout << "after backward" << endl;
-    cout << a << " + " << b << "^" << 2 << " = " << c << endl;
-    }
-    cout << "after inner braces" << endl;
-    }
-    cout << "after outer braces" << endl;
-
-    /*
-    void* ptr2;
-    {
-    cout << 1 << endl;
-    auto hey = std::make_shared<bla>(3,4);
-    cout << 2 << endl;
-    auto ho = std::make_shared<bla>(4,5);
-    cout << 3 << endl;
-    cout << 4 << endl;
-
-    ptr2 = (void*)hey.get();
-    }
-    auto hey = std::make_shared<bla>(10,100);
-    auto obj2 = (bla*)ptr2;
-    cout << obj2->x_ << ", " << obj2->y_ << endl;
-*/
+    sanity_check_rvalues();
+    test_more_ops();
 
     cout << "end of main" << endl;
     return 0;
