@@ -8,6 +8,14 @@
 #include <unordered_set>
 #include <memory>
 
+#ifndef __OPTIMIZE__
+#define LOG(x) std::cout << x << std::endl
+#define LOGVAR(x) std::cout << #x"=" << x << std::endl
+#else
+#define LOG(x)
+#define LOGVAR(x)
+#endif
+
 namespace ajs {
 
 template<typename T>
@@ -19,13 +27,13 @@ class Value
 
     struct Node {
         Node(T d) : data{d} {
-            std::cout << "node value constructor with data=" << d << " at " << this << std::endl;
+            LOG("node value constructor with data=" << d << " at " << this);
         }
         Node(T d, Op o, std::shared_ptr<Node> ch1, std::shared_ptr<Node> ch2) : data{d}, op{o}, child1{ch1}, child2{ch2} {
-            std::cout << "full node constructor " << this << std::endl;
+            LOG("full node constructor " << this);
         }
         ~Node() {
-            std::cout << "destroying node " << this << std::endl;
+            LOG("destroying node " << this);
         }
         std::string op_str() {
             switch (op) {
@@ -120,4 +128,4 @@ std::ostream& operator<<(std::ostream& os, const Value<T>& v);
 } // namespace ajs
 
 // Needed because this is a template library
-#include "picograd.cpp"
+#include "value.hpp"

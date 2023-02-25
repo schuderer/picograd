@@ -1,17 +1,9 @@
-#include "picograd.h"
+#include "value.h"
 #include <iostream>
 #include <vector>
 #include <unordered_set>
 #include <cmath>
 #include <memory>
-
-#ifndef __OPTIMIZE__
-#define LOG(x) std::cout << x << std::endl
-#define LOGVAR(x) std::cout << #x"=" << x << std::endl
-#else
-#define LOG(x)
-#define LOGVAR(x)
-#endif
 
 namespace ajs {
 

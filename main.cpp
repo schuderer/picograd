@@ -1,5 +1,5 @@
 #include <iostream>
-#include "picograd.h"
+#include "picograd/value.h"
 
 // for some tests and debugging
 #include <map>
@@ -26,6 +26,7 @@ void sanity_check() {
     auto y = h + q + q_x;
     y.backward();
 
+    // for more detailed debugging
 //    cout << "x: " << x << endl;
 //    cout << "x2: " << x2 << endl;
 //    cout << "x3: " << x3 << endl;
@@ -135,10 +136,11 @@ void test_more_ops() {
 }
 
 
+#ifndef __OPTIMIZE__
 // Just for tracking object creating and destruction. Remove this, as well as the new/delete overloads
-// (the crash at the end of main is because of delete trying to access it)
 std::map<size_t, size_t> sizes;
 bool stop_recursion = false;
+bool map_available = false;
 
 void* operator new(size_t sz) {
     void* ptr = std::malloc(sz);
@@ -151,19 +153,17 @@ void* operator new(size_t sz) {
     return ptr;
 }
 void operator delete(void* ptr) noexcept {
-    long size = sizes.contains((size_t)ptr) ? sizes[(size_t)ptr] : -1;
-    if (size >= 100)
-        cout << "-- delete " << size << " bytes @ " << ptr << " --" << endl;
+    if (map_available) {
+        long size = sizes.contains((size_t)ptr) ? sizes[(size_t)ptr] : -1;
+        if (size >= 100)
+            cout << "-- delete " << size << " bytes @ " << ptr << " --" << endl;
+        map_available = sizes.size() != 0;
+    }
     std::free(ptr);
     ptr = nullptr;
 }
 void* operator new[](size_t sz) {
     void* ptr = std::malloc(sz);
-    if (!stop_recursion) {
-        stop_recursion = true;
-        sizes[(size_t)ptr] = sz;
-        stop_recursion = false;
-    }
     cout << "-- new[] " << sz << " bytes @ " << ptr << " --" << endl;
     return ptr;
 }
@@ -171,10 +171,12 @@ void operator delete[](void* ptr) noexcept {
     cout << "-- delete[] " << ptr << " --" << endl;
     std::free(ptr);
 }
+#endif
 
 
 int main()
 {
+    cout << "beginning of main" << endl;
     sanity_check();
     sanity_check_rvalues();
     test_more_ops();
