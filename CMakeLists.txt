@@ -52,7 +52,7 @@ message(STATUS "picograd PROJECT_NAME: " ${PROJECT_NAME})
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     if(VERBOSE)
-        add_definitions(-DAJS_VERBOSE)
+        add_compile_definitions(VERBOSE_${PROJECT_NAME})
     endif()
     include(CTest)
     add_subdirectory(test)
