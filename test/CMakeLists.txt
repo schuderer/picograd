@@ -2,7 +2,7 @@
 message(STATUS "Start of test/CMakeLists.txt")
 
 find_package(GTest REQUIRED)
-#include(GoogleTest)  # apparently not necessary
+#include(GoogleTest)  # maybe not necessary? But seemed to fixed incidental "binary not found" error of `ctest -VV`
 
 set(TEST_BINARY tests)
 

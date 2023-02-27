@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <memory>
 
-#if defined(AJS_VERBOSE) && defined(NDEBUG)
+#if defined(AJS_VERBOSE) && !defined(NDEBUG)
 #include <iostream>
 #define FILENAME strrchr("/" __FILE__, '/') + 1
 #define LOG(x) std::cout << FILENAME << " (" << __LINE__ << "): " << x << std::endl
@@ -23,7 +23,7 @@ template<typename T>
 class Value
 {
     enum class Op {
-        none, add, sub, mult, div, neg, pow, exp, tanh, relu
+        none, add, sub, mult, div, neg, pow, exp, log, tanh, relu
     };
 
     struct Node {
@@ -95,6 +95,7 @@ public:
     Value pow(int exponent) const;
     Value pow(float exponent) const;
     Value exp() const;
+    Value log() const;
     Value tanh() const;
     Value relu() const;
 

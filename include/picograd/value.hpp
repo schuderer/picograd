@@ -223,6 +223,25 @@ Value<T> Value<T>::exp() const {
 }
 
 template<typename T>
+Value<T> Value<T>::log() const {
+    LOG("forward pass for " << *this << ".log()");
+    auto out_node = std::make_shared<Node>(std::log(get_data()), Op::log, node_, nullptr);
+
+    struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
+        std::shared_ptr<Node> out_node;
+        void operator()() {
+            auto a = out_node->child1;
+            auto grad = out_node->grad;
+            a->grad += grad * (1 / a->data);
+            LOG(out_node->op_str() << " backward result: " << a->str());
+        };
+    };
+
+    out_node->backward = lambda{out_node};
+    return Value(out_node);
+}
+
+template<typename T>
 Value<T> Value<T>::tanh() const {
     LOG("forward pass for " << *this << ".tanh()");
     T exp_val = std::exp(get_data() * 2);

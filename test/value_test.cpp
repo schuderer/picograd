@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include <stdio.h>
+#include <iostream>
 
 #include "picograd/value.h"
 
@@ -56,4 +56,15 @@ TEST(Value, TestMoreOps) {
     EXPECT_DOUBLE_EQ(g.get_data(), 24.70408163265306);
     EXPECT_DOUBLE_EQ(a.get_grad(), 138.83381924198252);
     EXPECT_DOUBLE_EQ(b.get_grad(), 645.5772594752186);
+}
+
+TEST(Value, Log) {
+    auto a = ajs::Value(7.0);
+    auto b = a.log();
+    LOGVAR(a);
+    LOGVAR(b);
+    b.backward();
+    LOGVAR(a);
+    LOGVAR(b);
+    EXPECT_DOUBLE_EQ(a.get_grad(), 1.0/7.0);
 }
