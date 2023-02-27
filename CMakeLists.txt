@@ -47,6 +47,9 @@ add_subdirectory(src)  # empty because of header-only library
 # - enable verbose logging if set to ON
 # - build unit tests
 option(VERBOSE "Turn on verbose logging for library builds" ON)
+message(STATUS "picograd CMAKE_PROJECT_NAME: " ${CMAKE_PROJECT_NAME})
+message(STATUS "picograd PROJECT_NAME: " ${PROJECT_NAME})
+
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     if(VERBOSE)
         add_definitions(-DAJS_VERBOSE)
