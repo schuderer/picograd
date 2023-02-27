@@ -1,16 +1,17 @@
 #pragma once
 
 #include <functional>
-#include <iostream>
 #include <string>
 #include <cmath>
 #include <vector>
 #include <unordered_set>
 #include <memory>
 
-#ifndef __OPTIMIZE__
-#define LOG(x) std::cout << x << std::endl
-#define LOGVAR(x) std::cout << #x"=" << x << std::endl
+#if defined(AJS_VERBOSE) && defined(NDEBUG)
+#include <iostream>
+#define FILENAME strrchr("/" __FILE__, '/') + 1
+#define LOG(x) std::cout << FILENAME << " (" << __LINE__ << "): " << x << std::endl
+#define LOGVAR(x) std::cout << FILENAME << " (" << __LINE__ << "): " << #x"=" << x << std::endl
 #else
 #define LOG(x)
 #define LOGVAR(x)

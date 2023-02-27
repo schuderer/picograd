@@ -3,12 +3,6 @@
 
 #include "picograd/value.h"
 
-TEST(Bla, Sum)
-{
-    printf("aeu");
-  EXPECT_EQ(2, 1 + 1);
-}
-
 TEST(Value, SanityCheckLValue) {
     // without rvalues/temporaries:
     auto x = ajs::Value(-4.0f);
@@ -39,9 +33,9 @@ TEST(Value, SanityCheckRValue) {
     auto y = h + q + q * x;
     y.backward();
 
-    EXPECT_DOUBLE_EQ(x.get_data(), -4.0f);
-    EXPECT_DOUBLE_EQ(y.get_data(), -20.0f);
-    EXPECT_DOUBLE_EQ(x.get_grad(), 46.0f);
+    EXPECT_DOUBLE_EQ(x.get_data(), -4.0);
+    EXPECT_DOUBLE_EQ(y.get_data(), -20.0);
+    EXPECT_DOUBLE_EQ(x.get_grad(), 46.0);
 }
 
 TEST(Value, TestMoreOps) {

@@ -43,8 +43,14 @@ target_include_directories(${PROJECT_NAME} INTERFACE  # would be PUBLIC for libr
 # Add a subdirectory for the library source files
 add_subdirectory(src)  # empty because of header-only library
 
-# Build unit tests if top-level project
+# If top-level project:
+# - enable verbose logging if set to ON
+# - build unit tests
+option(VERBOSE "Turn on verbose logging for library builds" ON)
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    if(VERBOSE)
+        add_definitions(-DAJS_VERBOSE)
+    endif()
     include(CTest)
     add_subdirectory(test)
 endif()
@@ -52,51 +58,51 @@ endif()
 
 
 
-# FROM HERE ON: FOR DISTRIBUTION
-# (I don't yet understand things sufficiently to make proper sense of this)
-# Might clarify things a bit: https://dominikberner.ch/cmake-interface-lib/
+## FROM HERE ON: FOR DISTRIBUTION
+## (I don't yet understand things sufficiently to make proper sense of this)
+## Might clarify things a bit: https://dominikberner.ch/cmake-interface-lib/
 
-# Install the library header files
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-)
+## Install the library header files
+#install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}
+#        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+#)
 
-# Configure the library to be exported to the build tree and the install tree
-install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}_targets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+## Configure the library to be exported to the build tree and the install tree
+#install(TARGETS ${PROJECT_NAME}
+#    EXPORT ${PROJECT_NAME}_targets
+#    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+#)
 
-# The write_basic_package_version_file() function generates a version file for the library,
-# which is used by downstream projects to ensure compatibility.
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY SameMajorVersion
-)
+## The write_basic_package_version_file() function generates a version file for the library,
+## which is used by downstream projects to ensure compatibility.
+#include(CMakePackageConfigHelpers)
+#write_basic_package_version_file(
+#  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+#  VERSION ${PROJECT_VERSION}
+#  COMPATIBILITY SameMajorVersion
+#)
 
-# The export() command generates a CMake package file called picograd_targets.cmake,
-# which exports the picograd library for use in other CMake projects.
-export(TARGETS ${PROJECT_NAME}
-       NAMESPACE ajs::
-       FILE ${PROJECT_NAME}_targets.cmake
-)
+## The export() command generates a CMake package file called picograd_targets.cmake,
+## which exports the picograd library for use in other CMake projects.
+#export(TARGETS ${PROJECT_NAME}
+#       NAMESPACE ajs::
+#       FILE ${PROJECT_NAME}_targets.cmake
+#)
 
-# The install(EXPORT ...) command installs this file along with the header files and the library itself.
-install(EXPORT ${PROJECT_NAME}_targets
-        NAMESPACE ajs::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-)
+## The install(EXPORT ...) command installs this file along with the header files and the library itself.
+#install(EXPORT ${PROJECT_NAME}_targets
+#        NAMESPACE ajs::
+#        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+#)
 
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-)
-
+#install(FILES
+#  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+#  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+#  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+#)
+### End of block for distribution
 
 
 # Example for static library:
