@@ -26,6 +26,7 @@ Value<T>::Value(std::shared_ptr<Node> node): node_{node} {
 template<typename T>
 Value<T>::Value(const Value& other) {
     LOG("Copy constructor: " << other << " -> " << *this);
+//    node_ = std::make_shared<Node>(other.node_->data);  // breaks gradient calculation - value semantics (behaviour expected from primitive types)
     node_ = other.node_;
 }
 
@@ -38,9 +39,9 @@ Value<T>::Value(Value&& other) {
 template<typename T>
 Value<T>& Value<T>::operator=(const Value& other) {
     LOG("Copy assignment constructor: " << other << " -> " << *this);
+//    node_ = std::make_shared<Node>(other.node_->data);  // breaks gradient calculation - value semantics (behaviour expected from primitive types)
     node_ = other.node_;
     return *this;
-
 }
 
 template<typename T>
@@ -223,6 +224,27 @@ Value<T> Value<T>::exp() const {
 }
 
 template<typename T>
+Value<T> Value<T>::log() const {
+    LOG("forward pass for " << *this << ".log()");
+    auto safe_data = get_data() != 0 ? get_data() : 1.0E-15f;  // TODO: necessary? is there a better way?
+    auto out_node = std::make_shared<Node>(std::log(safe_data), Op::log, node_, nullptr);
+
+    struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
+        std::shared_ptr<Node> out_node;
+        T safe_data;
+        void operator()() {
+            auto a = out_node->child1;
+            auto grad = out_node->grad;
+            a->grad += grad * (1 / safe_data);
+            LOG(out_node->op_str() << " backward result: " << a->str());
+        };
+    };
+
+    out_node->backward = lambda{out_node, safe_data};
+    return Value(out_node);
+}
+
+template<typename T>
 Value<T> Value<T>::tanh() const {
     LOG("forward pass for " << *this << ".tanh()");
     T exp_val = std::exp(get_data() * 2);
@@ -262,6 +284,28 @@ Value<T> Value<T>::relu() const {
 }
 
 template<typename T>
+Value<T> Value<T>::sigmoid() const {
+    LOG("forward pass for " << *this << ".sigmoid()");
+    auto out_node = std::make_shared<Node>(T(1) / (T(1) + std::exp(-get_data())), Op::sigmoid, node_, nullptr);
+
+    struct lambda {  // native lambda function work just as well but the debugger refuses to jump into them (for performance, it does not matter): https://stackoverflow.com/questions/50346822/does-lambda-object-construction-cost-a-lot
+        std::shared_ptr<Node> out_node;
+        void operator()() {
+            auto a = out_node->child1;
+            auto grad = out_node->grad;
+            a->grad += grad * out_node->data * (1 - out_node->data);
+            LOG(out_node->op_str() << " backward result: " << a->str());
+        };
+    };
+
+    out_node->backward = lambda{out_node};
+    return Value(out_node);
+}
+
+
+
+
+template<typename T>
 Value<T> Value<T>::operator+=(const Value& other) {
     *this = *this + other;
     return *this;
@@ -283,6 +327,26 @@ template<typename T>
 Value<T> Value<T>::operator/=(const Value& other) {
     *this = *this / other;
     return *this;
+}
+
+
+
+template<typename T>
+bool Value<T>::operator==(const Value<T>& other) const {
+    LOGVAR(this->get_data() == other.get_data());
+    return (this->get_data() == other.get_data());
+}
+
+template<typename T>
+bool Value<T>::operator!=(const Value<T>& other) const {
+    LOGVAR(this->get_data() != other.get_data());
+    return (this->get_data() == other.get_data());
+}
+
+template<typename T>
+bool Value<T>::operator<(const Value<T>& other) const {
+    LOGVAR(this->get_data() < other.get_data());
+    return (this->get_data() < other.get_data());
 }
 
 
@@ -322,36 +386,50 @@ void Value<T>::backward() {
 }
 
 
+//template<typename T>
+//Value<T> Value<T>::get_view() const {  // redundant with how copy constructor works
+//    return Value(this->node_);
+//}
+
+
 template<typename T>
+inline
 T Value<T>::get_data() const {
     return node_->data;
 }
 template<typename T>
+inline
 T Value<T>::get_grad() const {
     return node_->grad;
 }
 template<typename T>
+inline
 auto Value<T>::get_node() const {
     return node_;
 }
 template<typename T>
+inline
 void Value<T>::set_data(T data) {
     node_->data = data;
 }
 template<typename T>
+inline
 void Value<T>::set_grad(T grad) {
     node_->grad = grad;
 }
 
 template<typename T>
+inline
 Value<T>::operator double() const {
     return static_cast<double>(get_data());
 }
 template<typename T>
+inline
 Value<T>::operator int() const {  // explicit
     return static_cast<int>(get_data());
 }
 template<typename T>
+inline
 Value<T>::operator float() const {  // explicit
     return static_cast<float>(get_data());
 }

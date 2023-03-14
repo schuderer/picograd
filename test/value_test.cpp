@@ -1,13 +1,7 @@
 #include "gtest/gtest.h"
-#include <stdio.h>
+#include <iostream>
 
 #include "picograd/value.h"
-
-TEST(Bla, Sum)
-{
-    printf("aeu");
-  EXPECT_EQ(2, 1 + 1);
-}
 
 TEST(Value, SanityCheckLValue) {
     // without rvalues/temporaries:
@@ -39,9 +33,9 @@ TEST(Value, SanityCheckRValue) {
     auto y = h + q + q * x;
     y.backward();
 
-    EXPECT_DOUBLE_EQ(x.get_data(), -4.0f);
-    EXPECT_DOUBLE_EQ(y.get_data(), -20.0f);
-    EXPECT_DOUBLE_EQ(x.get_grad(), 46.0f);
+    EXPECT_DOUBLE_EQ(x.get_data(), -4.0);
+    EXPECT_DOUBLE_EQ(y.get_data(), -20.0);
+    EXPECT_DOUBLE_EQ(x.get_grad(), 46.0);
 }
 
 TEST(Value, TestMoreOps) {
@@ -62,4 +56,15 @@ TEST(Value, TestMoreOps) {
     EXPECT_DOUBLE_EQ(g.get_data(), 24.70408163265306);
     EXPECT_DOUBLE_EQ(a.get_grad(), 138.83381924198252);
     EXPECT_DOUBLE_EQ(b.get_grad(), 645.5772594752186);
+}
+
+TEST(Value, Log) {
+    auto a = ajs::Value(7.0);
+    auto b = a.log();
+    LOGVAR(a);
+    LOGVAR(b);
+    b.backward();
+    LOGVAR(a);
+    LOGVAR(b);
+    EXPECT_DOUBLE_EQ(a.get_grad(), 1.0/7.0);
 }
