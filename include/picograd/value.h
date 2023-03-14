@@ -23,7 +23,7 @@ template<typename T>
 class Value
 {
     enum class Op {
-        none, add, sub, mult, div, neg, pow, exp, log, tanh, relu
+        none, add, sub, mult, div, neg, pow, exp, log, tanh, relu, sigmoid
     };
 
     struct Node {
@@ -58,6 +58,8 @@ class Value
                 return "tanh";
             case Op::relu:
                 return "relu";
+            case Op::sigmoid:
+                return "sigmoid";
             default:
                 return "unknown";
             }
@@ -78,10 +80,10 @@ public:
     Value();
     Value(const T data);
     Value(std::shared_ptr<Node> node);
-    Value(const Value& other);  // copy constructor
-    Value(Value&& other);  // move constructor
-    Value& operator=(const Value& other);  // copy assignment constructor
-    Value& operator=(Value&& other);  // move assignment constructor
+    Value(const Value& other);  // Copy constructor (new Value points to same inner Node as old value)
+    Value(Value&& other);  // Move constructor
+    Value& operator=(const Value& other);  // Copy assignment constructor (new Value points to same inner Node as old value)
+    Value& operator=(Value&& other);  // Move assignment constructor
     ~Value();
 
     // Arithmetic operator overloads
@@ -98,14 +100,21 @@ public:
     Value log() const;
     Value tanh() const;
     Value relu() const;
+    Value sigmoid() const;
 
     Value operator+=(const Value& other);
     Value operator*=(const Value& other);
     Value operator-=(const Value& other);
     Value operator/=(const Value& other);
 
+    bool operator==(const Value& other) const;
+    bool operator!=(const Value& other) const;
+    bool operator<(const Value& other) const;
+
     void backward();
     void graph();
+
+//    Value get_view() const;  // redundant with how copy constructor works --Get a new Value object that points to the same node and structure as this one
 
     T get_data() const;
     T get_grad() const;
@@ -120,7 +129,7 @@ public:
     explicit operator float() const;
 
 protected:
-    std::shared_ptr<Node> node_;
+    std::shared_ptr<Node> node_{nullptr};
     void topological_order(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& topo, std::unordered_set<std::shared_ptr<Node>>& visited);
 };
 
