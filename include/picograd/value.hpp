@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <unordered_set>
-#include <cmath>
-#include <memory>
+#include <cmath>            // std::log, std::pow, std::exp
+#include <memory>           // smart pointers
 
 namespace ajs {
 
@@ -386,6 +386,12 @@ void Value<T>::backward() {
 }
 
 
+template<typename T>
+void Value<T>::print_graph() {
+    if (node_) node_.get()->print_graph();
+}
+
+
 //template<typename T>
 //Value<T> Value<T>::get_view() const {  // redundant with how copy constructor works
 //    return Value(this->node_);
@@ -417,6 +423,7 @@ inline
 void Value<T>::set_grad(T grad) {
     node_->grad = grad;
 }
+
 
 template<typename T>
 inline

@@ -2,10 +2,12 @@
 
 #include <functional>
 #include <string>
-#include <cmath>
-#include <vector>
+#include <vector>           // std:vector
+#include <algorithm>        // std:find
 #include <unordered_set>
-#include <memory>
+#include <cmath>            // std::log, std::pow, std::exp
+#include <memory>           // smart pointers
+#include <sstream>          // std::ostringstream
 
 #if defined(VERBOSE_picograd) && !defined(NDEBUG)
 #include <iostream>
@@ -65,7 +67,32 @@ class Value
             }
         }
         std::string str() {
-            return std::string("Node(") + std::to_string(data) + ",grad=" + std::to_string(grad) + ",op=" + op_str() + ")";// + std::to_string(this);
+            std::ostringstream stream;
+            stream << "Node(" << data << ", grad=" << grad << ", op=" << op_str() << ")";
+            return stream.str();
+//            return std::string("Node(") + std::to_string(data) + ",grad=" + std::to_string(grad) + ",op=" + op_str() + ")";// + std::to_string(this);
+        }
+
+        void print_graph(uint8_t level=0, std::vector<int> running_levels={}) {
+            std::ostringstream indent_os;
+            for (uint8_t i=1; i<level; ++i) {
+                if (std::find(running_levels.begin(), running_levels.end(), i-1) != running_levels.end()) {
+                    indent_os << " |  ";
+                }
+                else {
+                    indent_os << "    ";
+                }
+            }
+            if (level > 0) indent_os << " |__";
+            auto indent_str = indent_os.str();
+            std::cout << indent_str << str() << "\n";
+
+            running_levels.push_back(level);
+            if (child1) child1->print_graph(level + 1, running_levels);
+            running_levels.pop_back();
+            if (child2) child2->print_graph(level + 1, running_levels);
+
+            if (level == 0) std::cout << std::endl;
         }
 
         T data;
@@ -112,7 +139,7 @@ public:
     bool operator<(const Value& other) const;
 
     void backward();
-    void graph();
+    void print_graph();
 
 //    Value get_view() const;  // redundant with how copy constructor works --Get a new Value object that points to the same node and structure as this one
 
